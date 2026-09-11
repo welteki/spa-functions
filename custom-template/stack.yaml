@@ -1,0 +1,15 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway: http://127.0.0.1:8080
+functions:
+  web-spa-custom:
+    lang: dockerfile
+    handler: ./web-spa
+    image: ${OPENFAAS_PREFIX:-ghcr.io/your-name}/web-spa-custom:${TAG:-latest}
+    build_args:
+      VITE_BASE_PATH: ${VITE_BASE_PATH:-/}
+    environment:
+      STORE: memory
+    # secrets:
+    #   - todo-db-url

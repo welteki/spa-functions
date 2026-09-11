@@ -1,0 +1,5 @@
+template
+build
+.secrets
+web-spa/frontend/node_modules
+web-spa/frontend/dist

@@ -1,0 +1,5 @@
+template
+build
+.secrets
+frontend/node_modules
+static
