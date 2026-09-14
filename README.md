@@ -11,29 +11,29 @@ Browser ──> OpenFaaS function
 ```
 
 The examples use Go, React, Vite, and React Router, but the pattern applies to
-other backend and frontend stacks. The backend reserves `/api/*` before the SPA
-fallback is applied, so an unknown API endpoint returns an API 404 rather than
-`index.html`.
+other backend and frontend stacks.
 
-Combining both parts gives the browser one origin for pages and API calls. It
-can simplify cookies, authentication, and CORS configuration, while allowing a
-matching frontend and backend to be released as one unit.
+Serving the frontend and API from the same function gives the browser one
+origin for pages and API calls. This can simplify cookies, authentication, and
+CORS configuration, while allowing the frontend and backend to be released as
+one unit.
 
 ## Example application
 
-The stock-template implementation applies the pattern to a TODO application:
+The example is a todo app with a React frontend and a Go API. You can add,
+complete, and delete tasks, and switch between all tasks and completed tasks
+without reloading the page. A live request log shows the API calls as you use
+the app.
 
-- React Router provides a Todos view and a separate About view.
-- Tailwind CSS is loaded from its browser CDN to keep styling out of the build
-  configuration.
-- Go exposes `GET` and `POST /api/todos`, plus `PATCH` and
-  `DELETE /api/todos/:id`.
-- The Go process stores todos in memory to keep the example focused on HTTP
-  routing and packaging.
+Tasks are stored in memory by default, so they are lost when the function
+restarts and are not shared between replicas. Optional PostgreSQL storage keeps
+tasks across restarts and shares them between replicas.
 
-The data is intentionally ephemeral: it is lost when a function instance
-restarts, and separate replicas do not share state. A real application would
-replace the in-memory store with a database or external service.
+The repository shows two ways to package this app: build the frontend separately
+and include it using the OpenFaaS [golang-middleware template](https://docs.openfaas.com/languages/go/),
+or build the frontend and backend together using the OpenFaaS
+[Dockerfile template](https://docs.openfaas.com/languages/dockerfile/).
+The sections below explain the tradeoffs.
 
 ## Approach 1: copy a separately built frontend
 
@@ -101,6 +101,20 @@ a stock OpenFaaS language template. The Dockerfile approach gives stronger
 build reproducibility and a simpler CI contract. Both produce the same runtime
 shape: one function serving the SPA and API.
 
-The default frontend base path is `/`. When using the conventional OpenFaaS
-gateway route, build with `VITE_BASE_PATH=/function/<function-name>/` so static
-assets, client-side routes, and API requests share the function prefix.
+When serving a frontend through the OpenFaaS gateway, account for the path
+where the function is exposed: `/function/<function-name>/`. Static asset
+URLs, client-side routes, and API requests must all use this base path.
+Configure the frontend build accordingly; a build intended for the server
+root (`/`) may work locally but fail under the gateway's function path.
+
+If the base path is embedded at build time, changing the function name or
+exposure path requires rebuilding the frontend. Keep this configuration
+consistent across local development, frontend builds, and deployment.
+
+Here, both functions are named `todo`, so `VITE_BASE_PATH` is
+`/function/todo/`:
+
+- **Stock template:** build the frontend with the correct base path before
+  including its static assets in the function build.
+- **Custom template:** pass the base path as a Docker build argument so the
+  Dockerfile can set it when building the frontend.

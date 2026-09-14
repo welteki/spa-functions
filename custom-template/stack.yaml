@@ -3,13 +3,15 @@ provider:
   name: openfaas
   gateway: http://127.0.0.1:8080
 functions:
-  web-spa-custom:
+  todo:
     lang: dockerfile
-    handler: ./web-spa
-    image: ${OPENFAAS_PREFIX:-ghcr.io/your-name}/web-spa-custom:${TAG:-latest}
+    handler: ./todo
+    image: ${REGISTRY:-ttl.sh}/${OWNER:-openfaas-function}/todo:${TAG:-latest}
     build_args:
-      VITE_BASE_PATH: ${VITE_BASE_PATH:-/}
+      # Default matches the gateway mount path so a plain build is deploy-ready.
+      VITE_BASE_PATH: ${VITE_BASE_PATH:-/function/todo}
     environment:
       STORE: memory
+      VERSION: ${VERSION:-dev}
     # secrets:
     #   - todo-db-url

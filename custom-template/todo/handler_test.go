@@ -80,3 +80,42 @@ func decode(t *testing.T, response *httptest.ResponseRecorder, target any) {
 		t.Fatalf("decode response: %v", err)
 	}
 }
+
+func TestVersion(t *testing.T) {
+	for _, tc := range []struct {
+		name, value, want string
+	}{
+		{"default", "", "dev"},
+		{"release", "0.1.2", "0.1.2"},
+		{"prefixed release", "v0.1.2", "v0.1.2"},
+		{"blank", "  ", "dev"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("VERSION", tc.value)
+			res := request(t, http.MethodGet, "/api/version", "")
+			if res.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d", res.Code)
+			}
+			if got := res.Header().Get("Content-Type"); got != "application/json; charset=utf-8" {
+				t.Fatalf("expected JSON, got %q", got)
+			}
+			if got := res.Header().Get("Cache-Control"); got != "no-store" {
+				t.Fatalf("expected uncached version, got %q", got)
+			}
+			var info map[string]string
+			decode(t, res, &info)
+			if len(info) != 3 || info["name"] != "todos" || info["template"] != "golang-middleware" || info["version"] != tc.want {
+				t.Fatalf("unexpected version metadata: %#v", info)
+			}
+		})
+	}
+}
+
+func TestVersionRejectsOtherMethods(t *testing.T) {
+	for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodHead} {
+		res := request(t, method, "/api/version", "")
+		if res.Code != http.StatusMethodNotAllowed || res.Header().Get("Allow") != "GET" {
+			t.Fatalf("%s: expected 405 with Allow GET, got %d and %q", method, res.Code, res.Header().Get("Allow"))
+		}
+	}
+}

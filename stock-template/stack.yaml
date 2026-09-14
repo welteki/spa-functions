@@ -3,12 +3,13 @@ provider:
   name: openfaas
   gateway: http://127.0.0.1:8080
 functions:
-  web-spa-stock:
+  todo:
     lang: golang-middleware
-    handler: ./web-spa
-    image: ${OPENFAAS_PREFIX:-ghcr.io/your-name}/web-spa-stock:${TAG:-latest}
+    handler: ./todo
+    image: ${REGISTRY:-ttl.sh}/${OWNER:-openfaas-function}/todo:${TAG:-latest}
     environment:
       STORE: memory
+      VERSION: ${VERSION:-dev}
     # secrets:
     #   - todo-db-url
 configuration:

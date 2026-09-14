@@ -5,7 +5,8 @@ FROM --platform=${TARGETPLATFORM:-linux/amd64} ghcr.io/openfaas/of-watchdog:0.11
 FROM --platform=${BUILDPLATFORM:-linux/amd64} node:24-alpine AS frontend
 
 WORKDIR /frontend
-ARG VITE_BASE_PATH="/"
+# Must match the gateway mount path (/function/<name>) or asset URLs 404.
+ARG VITE_BASE_PATH="/function/todo"
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./

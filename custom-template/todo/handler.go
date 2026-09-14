@@ -17,6 +17,7 @@ var mux *http.ServeMux
 
 func init() {
 	mux = http.NewServeMux()
+	mux.HandleFunc("/api/version", handleVersion)
 	mux.HandleFunc("/api/todos", handleTodos)
 	mux.HandleFunc("/api/todos/", handleTodo)
 	mux.HandleFunc("/api/", handleAPINotFound)
@@ -27,6 +28,25 @@ func init() {
 func Handle(w http.ResponseWriter, r *http.Request) {
 	mux.ServeHTTP(w, r)
 }
+func handleVersion(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", "GET")
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+
+	version := strings.TrimSpace(os.Getenv("VERSION"))
+	if version == "" {
+		version = "dev"
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, map[string]string{
+		"name":     "todos",
+		"template": "golang-middleware",
+		"version":  version,
+	})
+}
+
 func handleTodos(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
